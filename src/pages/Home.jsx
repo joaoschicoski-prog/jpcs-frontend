@@ -33,7 +33,7 @@ export default function Home({ setPage }) {
   const cheapestMap = useMemo(() => {
     const map = {};
     cheapest.forEach((c) => {
-      map[c.id] = { price: c.price, supermarket: c.supermarket, valid_until: c.valid_until };
+      map[c.id] = { price: c.price, supermarket: c.supermarket, valid_until: c.valid_until, original_price: c.original_price, discount_pct: c.discount_pct };
     });
     return map;
   }, [cheapest]);

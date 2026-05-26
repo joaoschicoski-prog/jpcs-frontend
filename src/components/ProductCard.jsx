@@ -2,6 +2,14 @@ import { useAuth } from "../context/AuthContext";
 import { useList } from "../context/ListContext";
 import { useNav } from "../context/NavContext";
 
+const categoryColors = {
+  "Laticínios e Ovos": "#3b82f6", "Carnes e Pescados": "#ef4444", "Bebidas": "#8b5cf6",
+  "Padaria e Confeitaria": "#f59e0b", "Hortifruti": "#22c55e", "Limpeza e Lavanderia": "#06b6d4",
+  "Higiene e Beleza": "#ec4899", "Mercearia": "#f97316", "Frios e Embutidos": "#64748b",
+  "Congelados": "#0ea5e9", "Temperos e Molhos": "#84cc16", "Conservas e Enlatados": "#a16207",
+  "Doces e Sobremesas": "#d946ef", "Pet Shop": "#fb923c",
+};
+
 function getDaysUntil(dateStr) {
   if (!dateStr) return null;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -9,7 +17,7 @@ function getDaysUntil(dateStr) {
   return Math.round((end - today) / (1000 * 60 * 60 * 24));
 }
 
-export default function ProductCard({ product, cheapestPrice, supermarket, validUntil, onClick }) {
+export default function ProductCard({ product, cheapestPrice, supermarket, validUntil, originalPrice, discountPct, onClick }) {
   const { isLogged } = useAuth();
   const { isFavorite, toggleFavorite, isInList, addToList, removeFromList } = useList();
   const { goToMarket } = useNav();
@@ -18,6 +26,8 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
   const days = getDaysUntil(validUntil);
   const isUrgent = days !== null && days <= 1;
   const isWarning = days !== null && days > 1 && days <= 3;
+  const catColor = categoryColors[product.category] || "var(--green-500)";
+  const hasDiscount = originalPrice && Number(originalPrice) > Number(cheapestPrice);
 
   return (
     <div style={{
@@ -27,38 +37,45 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
       animation: "fadeUp 0.3s ease both",
       overflow: "hidden",
     }}>
-      {/* Linha principal - clicável */}
       <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 14px 10px", cursor: "pointer" }}>
         {product.image_url ? (
-          <img src={product.image_url} alt={product.name} style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", objectFit: "cover", flexShrink: 0 }} />
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <img src={product.image_url} alt={product.name} style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", objectFit: "cover" }} />
+            {hasDiscount && discountPct && (
+              <span style={{ position: "absolute", top: -6, right: -6, background: "#ef4444", color: "white", fontSize: 9, fontWeight: 800, borderRadius: "var(--radius-full)", padding: "2px 5px", lineHeight: 1 }}>
+                -{discountPct}%
+              </span>
+            )}
+          </div>
         ) : (
           <div style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", background: "var(--green-50)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🛒</div>
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
+          {product.category && (
+            <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "white", background: catColor, borderRadius: "var(--radius-full)", padding: "1px 8px", marginBottom: 3 }}>
+              {product.category}
+            </span>
+          )}
           <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {product.name}
           </p>
-          <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
-            {product.category || "Sem categoria"} · {product.brand || "Sem marca"}
-          </p>
+          <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>{product.brand || "Sem marca"}</p>
           {cheapestPrice && (
             <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--green-600)" }}>
-                R$ {Number(cheapestPrice).toFixed(2)}
-              </span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                {hasDiscount && (
+                  <span style={{ fontSize: 12, color: "var(--gray-400)", textDecoration: "line-through" }}>
+                    R$ {Number(originalPrice).toFixed(2)}
+                  </span>
+                )}
+                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-display)", color: hasDiscount ? "#ef4444" : "var(--green-600)" }}>
+                  R$ {Number(cheapestPrice).toFixed(2)}
+                </span>
+              </div>
               {supermarket && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); goToMarket({ name: supermarket }); }}
-                  style={{
-                    fontSize: 11, color: "var(--white)",
-                    background: "var(--green-600)",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "2px 8px",
-                    border: "none",
-                    cursor: "pointer", fontWeight: 600,
-                    display: "flex", alignItems: "center", gap: 3,
-                  }}>
+                <button onClick={(e) => { e.stopPropagation(); goToMarket({ name: supermarket }); }}
+                  style={{ fontSize: 11, color: "var(--white)", background: "var(--green-600)", borderRadius: "var(--radius-sm)", padding: "2px 8px", border: "none", cursor: "pointer", fontWeight: 600 }}>
                   📍 {supermarket}
                 </button>
               )}
@@ -68,48 +85,26 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
           )}
         </div>
 
-        {/* Seta indicando que é clicável */}
         <svg width="16" height="16" fill="none" stroke="var(--gray-300)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
           <path d="M6 4l4 4-4 4"/>
         </svg>
       </div>
 
-      {/* Botões embaixo — só se logado */}
       {isLogged && (
         <div style={{ display: "flex", borderTop: "1px solid var(--gray-100)" }}>
-          <button
-            onClick={() => toggleFavorite(product)}
-            style={{
-              flex: 1, padding: "10px",
-              background: fav ? "#e74c3c" : "var(--white)",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              borderRight: "1px solid var(--gray-100)",
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={() => toggleFavorite(product)}
+            style={{ flex: 1, padding: "10px", background: fav ? "#e74c3c" : "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRight: "1px solid var(--gray-100)", cursor: "pointer" }}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill={fav ? "white" : "none"} stroke={fav ? "white" : "#e74c3c"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: fav ? "white" : "#e74c3c" }}>
-              {fav ? "Favoritado" : "Favoritar"}
-            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: fav ? "white" : "#e74c3c" }}>{fav ? "Favoritado" : "Favoritar"}</span>
           </button>
-
-          <button
-            onClick={() => inList ? removeFromList(product.id) : addToList(product, cheapestPrice, supermarket)}
-            style={{
-              flex: 1, padding: "10px",
-              background: inList ? "var(--green-500)" : "var(--white)",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={() => inList ? removeFromList(product.id) : addToList(product, cheapestPrice, supermarket)}
+            style={{ flex: 1, padding: "10px", background: inList ? "var(--green-500)" : "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={inList ? "white" : "var(--green-600)"} strokeWidth="2.5" strokeLinecap="round">
               {inList ? <path d="M5 13l4 4L19 7"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
             </svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: inList ? "white" : "var(--green-600)" }}>
-              {inList ? "Na lista ✓" : "Adicionar"}
-            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: inList ? "white" : "var(--green-600)" }}>{inList ? "Na lista ✓" : "Adicionar"}</span>
           </button>
         </div>
       )}

@@ -1,16 +1,41 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useList } from "../context/ListContext";
 import { useAuth } from "../context/AuthContext";
+import { useNav } from "../context/NavContext";
+import { api } from "../api";
+
+const categoryColors = {
+  "Laticínios": "#3b82f6", "Carnes": "#ef4444", "Bebidas": "#8b5cf6",
+  "Padaria": "#f59e0b", "Hortifruti": "#22c55e", "Limpeza": "#06b6d4",
+  "Higiene": "#ec4899", "Mercearia": "#f97316", "Frios": "#64748b", "Congelados": "#0ea5e9",
+};
 
 export default function ShoppingList({ setPage }) {
   const { isLogged } = useAuth();
-  const { list, favorites, removeFromList, toggleChecked, toggleFavorite } = useList();
+  const { list, favorites, removeFromList, toggleChecked, toggleFavorite, updateQuantity, addToList, isInList } = useList();
+  const { goToMarket } = useNav();
   const [tab, setTab] = useState("list");
+  const [sortBy, setSortBy] = useState("default");
+  const [searchList, setSearchList] = useState("");
+  const [searchFav, setSearchFav] = useState("");
+  const [activeCatList, setActiveCatList] = useState("Todos");
+  const [activeCatFav, setActiveCatFav] = useState("Todos");
+  const [simMode, setSimMode] = useState("one");
+  const [allOffers, setAllOffers] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [showSim, setShowSim] = useState(false);
+
+  useEffect(() => {
+    if (list.length > 0 && allOffers.length === 0) {
+      setLoadingOffers(true);
+      api.getOffers("").then(setAllOffers).catch(() => {}).finally(() => setLoadingOffers(false));
+    }
+  }, [list.length]);
 
   if (!isLogged) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 32px", textAlign: "center" }}>
-        <p style={{ fontSize: 48, marginBottom: 16 }}>🔒</p>
+        <p style={{ fontSize: 48, marginBottom: 16 }}>🛒</p>
         <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, color: "var(--gray-900)", marginBottom: 8 }}>Faça login para usar esta função</p>
         <p style={{ fontSize: 14, color: "var(--gray-500)", marginBottom: 24 }}>Crie uma conta gratuita para montar sua lista de compras e favoritar produtos.</p>
         <button onClick={() => setPage("login")} style={{ padding: "14px 32px", background: "var(--green-500)", color: "var(--white)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>
@@ -22,26 +47,111 @@ export default function ShoppingList({ setPage }) {
 
   const checked = list.filter((i) => i.checked).length;
 
-  // Agrupar lista por supermercado (usando o primeiro mercado disponível do produto)
+  const listCategories = useMemo(() => {
+    const cats = [...new Set(list.map((i) => i.category).filter(Boolean))];
+    return ["Todos", ...cats];
+  }, [list]);
+
+  const favCategories = useMemo(() => {
+    const cats = [...new Set(favorites.map((i) => i.category).filter(Boolean))];
+    return ["Todos", ...cats];
+  }, [favorites]);
+
+  const filteredList = useMemo(() => {
+    return list.filter((item) => {
+      const matchSearch = item.name.toLowerCase().includes(searchList.toLowerCase());
+      const matchCat = activeCatList === "Todos" || item.category === activeCatList;
+      return matchSearch && matchCat;
+    });
+  }, [list, searchList, activeCatList]);
+
   const grouped = useMemo(() => {
     const groups = {};
-    list.forEach((item) => {
+    filteredList.forEach((item) => {
       const market = item.supermarket || "Sem mercado definido";
       if (!groups[market]) groups[market] = [];
       groups[market].push(item);
     });
     return groups;
-  }, [list]);
+  }, [filteredList]);
 
-  // Total da lista
   const total = useMemo(() => {
     return list.reduce((sum, item) => {
       const price = parseFloat(item.cheapestPrice || item.price || 0);
-      return sum + (isNaN(price) ? 0 : price);
+      const qty = item.quantity || 1;
+      return sum + (isNaN(price) ? 0 : price * qty);
     }, 0);
   }, [list]);
 
-  const items = tab === "list" ? list : favorites;
+  // Simulador — calcular por mercado
+  const marketSimData = useMemo(() => {
+    if (!allOffers.length || !list.length) return [];
+    const markets = {};
+    allOffers.forEach((o) => {
+      if (!markets[o.supermarket]) markets[o.supermarket] = { name: o.supermarket, offers: {} };
+      markets[o.supermarket].offers[o.product_id] = Number(o.price);
+    });
+    return Object.values(markets).map((m) => {
+      let total = 0;
+      let withOffer = 0;
+      let withoutOffer = [];
+      list.forEach((item) => {
+        const price = m.offers[item.id];
+        const qty = item.quantity || 1;
+        if (price) { total += price * qty; withOffer++; }
+        else { withoutOffer.push(item); total += parseFloat(item.cheapestPrice || 0) * qty; }
+      });
+      return { name: m.name, total, withOffer, withoutOffer, totalItems: list.length };
+    }).sort((a, b) => a.total - b.total);
+  }, [allOffers, list]);
+
+  // Melhor divisão em 2 mercados
+  const bestSplit = useMemo(() => {
+    if (marketSimData.length < 2) return null;
+    const m1 = marketSimData[0];
+    const m2 = marketSimData[1];
+    const splitTotal = m1.total * 0.6 + m2.total * 0.4;
+    const singleTotal = m1.total;
+    const saving = singleTotal - splitTotal;
+    return { m1, m2, splitTotal, saving };
+  }, [marketSimData]);
+
+  const filteredFavorites = useMemo(() => {
+    let arr = favorites.filter((item) => {
+      const matchSearch = item.name.toLowerCase().includes(searchFav.toLowerCase());
+      const matchCat = activeCatFav === "Todos" || item.category === activeCatFav;
+      return matchSearch && matchCat;
+    });
+    if (sortBy === "name") arr = arr.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === "price") arr = arr.sort((a, b) => (parseFloat(a.cheapestPrice) || 0) - (parseFloat(b.cheapestPrice) || 0));
+    if (sortBy === "category") arr = arr.sort((a, b) => (a.category || "").localeCompare(b.category || ""));
+    return arr;
+  }, [favorites, searchFav, activeCatFav, sortBy]);
+
+  const chipStyle = (active, color) => ({
+    padding: "6px 14px", borderRadius: "var(--radius-full)", fontSize: 12, fontWeight: 600,
+    whiteSpace: "nowrap", border: "none", cursor: "pointer", transition: "all 0.15s", flexShrink: 0,
+    background: active ? (color || "var(--green-500)") : "var(--gray-100)",
+    color: active ? "var(--white)" : "var(--gray-600)",
+  });
+
+  const searchBarStyle = {
+    width: "100%", padding: "10px 14px 10px 38px", borderRadius: "var(--radius-md)",
+    border: "1.5px solid var(--gray-200)", fontSize: 14, background: "var(--white)",
+    color: "var(--gray-900)", outline: "none", boxSizing: "border-box",
+  };
+
+  const SearchIcon = () => (
+    <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} width="16" height="16" fill="none" stroke="var(--gray-400)" strokeWidth="2" strokeLinecap="round">
+      <circle cx="7" cy="7" r="5"/><path d="M12 12l3 3"/>
+    </svg>
+  );
+
+  const ClearBtn = ({ onClick }) => (
+    <button onClick={onClick} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "var(--gray-200)", border: "none", borderRadius: "var(--radius-full)", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+      <svg width="10" height="10" fill="none" stroke="var(--gray-600)" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+    </button>
+  );
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -56,12 +166,8 @@ export default function ShoppingList({ setPage }) {
         )}
       </div>
 
-      {/* Tabs */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", background: "var(--gray-100)", margin: "16px 16px 0", borderRadius: "var(--radius-md)", padding: 4 }}>
-        {[
-          { id: "list", label: `Lista (${list.length})` },
-          { id: "favorites", label: `Favoritos (${favorites.length})` },
-        ].map((t) => (
+        {[{ id: "list", label: `Lista (${list.length})` }, { id: "favorites", label: `Favoritos (${favorites.length})` }].map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{ padding: "10px", borderRadius: "var(--radius-sm)", fontWeight: 600, fontSize: 14, background: tab === t.id ? "var(--white)" : "transparent", color: tab === t.id ? "var(--green-600)" : "var(--gray-500)", boxShadow: tab === t.id ? "var(--shadow-sm)" : "none", transition: "all 0.2s" }}>
             {t.label}
@@ -80,72 +186,276 @@ export default function ShoppingList({ setPage }) {
             </div>
           ) : (
             <>
-              {/* Total */}
-              {total > 0 && (
-                <div style={{ background: "var(--green-50)", border: "1px solid var(--green-200)", borderRadius: "var(--radius-lg)", padding: "14px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <p style={{ fontWeight: 600, fontSize: 14, color: "var(--green-700)" }}>💰 Total estimado</p>
-                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 20, color: "var(--green-600)" }}>
-                    R$ {total.toFixed(2)}
-                  </p>
+              {/* SIMULADOR DE COMPRA */}
+              <div style={{ background: showSim ? "var(--green-50)" : "var(--white)", border: `1.5px solid ${showSim ? "var(--green-300)" : "var(--gray-200)"}`, borderRadius: "var(--radius-lg)", marginBottom: 14, overflow: "hidden" }}>
+                <button onClick={() => setShowSim(!showSim)}
+                  style={{ width: "100%", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "transparent", cursor: "pointer" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>🏪</span>
+                    <div style={{ textAlign: "left" }}>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--green-700)", margin: 0 }}>Onde comprar?</p>
+                      <p style={{ fontSize: 12, color: "var(--gray-500)", margin: 0 }}>
+                        {loadingOffers ? "Calculando..." : marketSimData.length > 0 ? `${marketSimData.length} mercados analisados` : "Toque para analisar"}
+                      </p>
+                    </div>
+                  </div>
+                  <svg width="18" height="18" fill="none" stroke="var(--green-600)" strokeWidth="2" strokeLinecap="round" style={{ transform: showSim ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+                    <path d="M4 6l6 6 6-6"/>
+                  </svg>
+                </button>
+
+                {showSim && (
+                  <div style={{ padding: "0 14px 14px" }}>
+                    {/* Modo tabs */}
+                    <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                      {[
+                        { id: "one", label: "1 mercado", icon: "🏪" },
+                        { id: "two", label: "Dividir em 2", icon: "✂️" },
+                        { id: "all", label: "Ver todos", icon: "📋" },
+                      ].map((m) => (
+                        <button key={m.id} onClick={() => setSimMode(m.id)}
+                          style={{ flex: 1, padding: "8px 4px", borderRadius: "var(--radius-md)", border: `1.5px solid ${simMode === m.id ? "var(--green-500)" : "var(--gray-200)"}`, background: simMode === m.id ? "var(--green-500)" : "var(--white)", color: simMode === m.id ? "var(--white)" : "var(--gray-600)", fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>
+                          <span style={{ display: "block", fontSize: 14, marginBottom: 2 }}>{m.icon}</span>
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {loadingOffers ? (
+                      <div style={{ textAlign: "center", padding: "20px 0", color: "var(--gray-400)" }}>
+                        <p style={{ fontSize: 13 }}>Analisando mercados...</p>
+                      </div>
+                    ) : marketSimData.length === 0 ? (
+                      <div style={{ textAlign: "center", padding: "16px 0", color: "var(--gray-400)" }}>
+                        <p style={{ fontSize: 13 }}>Nenhum dado de oferta encontrado.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* MODO 1 MERCADO */}
+                        {simMode === "one" && (
+                          <div>
+                            {marketSimData.slice(0, 4).map((m, idx) => (
+                              <div key={m.name}
+                                style={{ background: idx === 0 ? "#f0fdf4" : "var(--white)", border: `1.5px solid ${idx === 0 ? "var(--green-300)" : "var(--gray-200)"}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}
+                                onClick={() => goToMarket({ name: m.name })}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontSize: 18 }}>{["🥇","🥈","🥉","4️⃣"][idx]}</span>
+                                    <div>
+                                      <p style={{ fontWeight: 700, fontSize: 14, color: "var(--gray-900)", margin: 0 }}>{m.name}</p>
+                                      <p style={{ fontSize: 11, color: "var(--gray-500)", margin: 0 }}>{m.withOffer} de {m.totalItems} itens em oferta</p>
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign: "right" }}>
+                                    <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: idx === 0 ? "var(--green-600)" : "var(--gray-700)", margin: 0 }}>
+                                      R$ {m.total.toFixed(2)}
+                                    </p>
+                                    {idx > 0 && (
+                                      <p style={{ fontSize: 11, color: "var(--gray-400)", margin: 0 }}>
+                                        +R$ {(m.total - marketSimData[0].total).toFixed(2)}
+                                      </p>
+                                    )}
+                                    {idx === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green-700)", background: "var(--green-100)", borderRadius: "var(--radius-full)", padding: "2px 8px" }}>melhor opção</span>}
+                                  </div>
+                                </div>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                  <span style={{ fontSize: 11, color: "#166534", background: "#dcfce7", borderRadius: "var(--radius-full)", padding: "2px 8px", fontWeight: 600 }}>
+                                    ✓ {m.withOffer} com oferta
+                                  </span>
+                                  {m.withoutOffer.length > 0 && (
+                                    <span style={{ fontSize: 11, color: "#92400e", background: "#fef3c7", borderRadius: "var(--radius-full)", padding: "2px 8px", fontWeight: 600 }}>
+                                      ⚠️ {m.withoutOffer.length} sem oferta
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {marketSimData[0]?.withoutOffer.length > 0 && (
+                              <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "var(--radius-md)", padding: "10px 12px", marginTop: 4 }}>
+                                <p style={{ fontSize: 12, color: "#92400e", margin: 0 }}>
+                                  💡 {marketSimData[0].withoutOffer.length} iten{marketSimData[0].withoutOffer.length > 1 ? "s" : ""} sem oferta cadastrada. Toque no mercado para verificar o preço no local.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* MODO DIVIDIR EM 2 */}
+                        {simMode === "two" && bestSplit && (
+                          <div>
+                            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: 12 }}>
+                              <p style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a", margin: "0 0 2px" }}>✨ Melhor divisão encontrada</p>
+                              <p style={{ fontSize: 12, color: "#1d4ed8", margin: 0 }}>
+                                Você pode economizar até R$ {Math.abs(bestSplit.saving).toFixed(2)} dividindo em 2 mercados
+                              </p>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                              {[bestSplit.m1, bestSplit.m2].map((m, i) => (
+                                <div key={m.name}
+                                  style={{ background: "var(--white)", border: "2px solid var(--green-400)", borderRadius: "var(--radius-md)", padding: "12px", cursor: "pointer" }}
+                                  onClick={() => goToMarket({ name: m.name })}>
+                                  <p style={{ fontSize: 11, color: "var(--gray-400)", margin: "0 0 4px" }}>Parada {i + 1}</p>
+                                  <p style={{ fontWeight: 700, fontSize: 13, color: "var(--gray-900)", margin: "0 0 4px" }}>{m.name}</p>
+                                  <p style={{ fontSize: 12, color: "var(--green-600)", fontWeight: 700, margin: 0 }}>
+                                    {m.withOffer} itens · R$ {(m.total * (i === 0 ? 0.6 : 0.4)).toFixed(2)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                <p style={{ fontSize: 13, color: "var(--gray-500)", margin: 0 }}>Total dividido</p>
+                                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--green-600)", margin: 0 }}>R$ {bestSplit.splitTotal.toFixed(2)}</p>
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <p style={{ fontSize: 12, color: "var(--gray-400)", margin: 0 }}>vs 1 mercado (R$ {bestSplit.m1.total.toFixed(2)})</p>
+                                <p style={{ fontSize: 12, color: "var(--green-600)", fontWeight: 600, margin: 0 }}>economia estimada</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* MODO VER TODOS */}
+                        {simMode === "all" && (
+                          <div style={{ background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 50px 80px", gap: 8, padding: "8px 12px", background: "var(--gray-50)", borderBottom: "1px solid var(--gray-200)" }}>
+                              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--gray-500)", margin: 0 }}>Mercado</p>
+                              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--gray-500)", margin: 0, textAlign: "center" }}>Itens</p>
+                              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--gray-500)", margin: 0, textAlign: "right" }}>Total</p>
+                            </div>
+                            {marketSimData.map((m, idx) => (
+                              <div key={m.name}
+                                style={{ display: "grid", gridTemplateColumns: "1fr 50px 80px", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--gray-100)", cursor: "pointer", background: idx === 0 ? "#f0fdf4" : "var(--white)" }}
+                                onClick={() => goToMarket({ name: m.name })}>
+                                <div>
+                                  <p style={{ fontSize: 13, fontWeight: idx === 0 ? 700 : 500, color: "var(--gray-900)", margin: 0 }}>{m.name}</p>
+                                  {idx === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#166534", background: "#dcfce7", borderRadius: "var(--radius-full)", padding: "1px 6px" }}>melhor</span>}
+                                </div>
+                                <p style={{ fontSize: 13, color: "var(--gray-500)", margin: 0, textAlign: "center", alignSelf: "center" }}>{m.withOffer}/{m.totalItems}</p>
+                                <p style={{ fontSize: 14, fontWeight: 700, color: idx === 0 ? "var(--green-600)" : "var(--gray-700)", margin: 0, textAlign: "right", alignSelf: "center" }}>R$ {m.total.toFixed(2)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Busca */}
+              <div style={{ position: "relative", marginBottom: 10 }}>
+                <SearchIcon />
+                <input type="text" placeholder="Buscar na lista..." value={searchList} onChange={(e) => setSearchList(e.target.value)} style={searchBarStyle} />
+                {searchList && <ClearBtn onClick={() => setSearchList("")} />}
+              </div>
+
+              {/* Chips categoria */}
+              {listCategories.length > 1 && (
+                <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: 10, scrollbarWidth: "none" }}>
+                  {listCategories.map((cat) => (
+                    <button key={cat} onClick={() => setActiveCatList(cat)} style={chipStyle(activeCatList === cat, categoryColors[cat])}>
+                      {cat === "Todos" ? "🛒 Todos" : cat}
+                    </button>
+                  ))}
                 </div>
               )}
 
-              {/* Agrupado por mercado */}
-              {Object.entries(grouped).map(([market, items]) => (
-                <div key={market} style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 14 }}>🏪</span>
-                    <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--gray-700)" }}>{market}</p>
-                    <span style={{ fontSize: 12, color: "var(--gray-400)", background: "var(--gray-100)", borderRadius: "var(--radius-full)", padding: "2px 8px" }}>
-                      {items.length} item{items.length !== 1 ? "s" : ""}
-                    </span>
+              {/* Total */}
+              {total > 0 && (
+                <div style={{ background: "var(--green-50)", border: "1px solid var(--green-200)", borderRadius: "var(--radius-lg)", padding: "14px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: "var(--green-700)", margin: 0 }}>💰 Total estimado</p>
+                    {(searchList || activeCatList !== "Todos") && (
+                      <p style={{ fontSize: 11, color: "var(--green-500)", marginTop: 2 }}>Mostrando {filteredList.length} de {list.length} itens</p>
+                    )}
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {items.map((item) => (
-                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-md)", padding: "12px 14px", opacity: item.checked ? 0.5 : 1 }}>
-                        {/* Checkbox */}
-                        <button onClick={() => toggleChecked(item.id)}
-                          style={{ width: 24, height: 24, borderRadius: "var(--radius-full)", border: `2px solid ${item.checked ? "var(--green-500)" : "var(--gray-300)"}`, background: item.checked ? "var(--green-500)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
-                          {item.checked && <svg width="12" height="12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>}
-                        </button>
-
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontWeight: 600, fontSize: 14, color: "var(--gray-900)", textDecoration: item.checked ? "line-through" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</p>
-                          <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>{item.category || "Sem categoria"}</p>
-                        </div>
-
-                        {/* Preço */}
-                        {item.cheapestPrice && (
-                          <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--green-600)", flexShrink: 0 }}>
-                            R$ {Number(item.cheapestPrice).toFixed(2)}
-                          </p>
-                        )}
-
-                        {/* Botão remover claro */}
-                        <button onClick={() => removeFromList(item.id)}
-                          style={{ width: 34, height: 34, borderRadius: "var(--radius-full)", background: "var(--red-50)", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                          title="Remover da lista">
-                          <svg width="14" height="14" fill="none" stroke="var(--red-400)" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M4 4l8 8M12 4l-8 8"/>
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 20, color: "var(--green-600)", margin: 0 }}>R$ {total.toFixed(2)}</p>
                 </div>
-              ))}
+              )}
+
+              {filteredList.length === 0 && (
+                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--gray-400)" }}>
+                  <p style={{ fontSize: 28, marginBottom: 8 }}>🔍</p>
+                  <p style={{ fontWeight: 600, fontSize: 14 }}>Nenhum item encontrado</p>
+                </div>
+              )}
+
+              {Object.entries(grouped).map(([market, items]) => {
+                const marketChecked = items.filter(i => i.checked).length;
+                const allChecked = marketChecked === items.length;
+                return (
+                  <div key={market} style={{ marginBottom: 20 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: "2px solid var(--green-100)" }}>
+                      <span style={{ fontSize: 16 }}>🏪</span>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--green-700)", flex: 1, margin: 0 }}>{market}</p>
+                      <span style={{ fontSize: 12, color: "var(--green-600)", background: "var(--green-50)", border: "1px solid var(--green-200)", borderRadius: "var(--radius-full)", padding: "2px 10px", fontWeight: 600 }}>
+                        {marketChecked}/{items.length}
+                      </span>
+                      <button onClick={() => items.forEach(i => { if (allChecked || !i.checked) toggleChecked(i.id); })}
+                        style={{ fontSize: 11, fontWeight: 700, color: allChecked ? "var(--gray-400)" : "var(--green-600)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 6px" }}>
+                        {allChecked ? "Desmarcar" : "Marcar todos"}
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {items.map((item) => (
+                        <div key={item.id} style={{ background: "var(--white)", border: `1.5px solid ${item.checked ? "var(--green-200)" : "var(--gray-200)"}`, borderRadius: "var(--radius-lg)", overflow: "hidden", opacity: item.checked ? 0.65 : 1, transition: "all 0.2s", boxShadow: item.checked ? "none" : "var(--shadow-sm)" }}>
+                          <div style={{ display: "flex", gap: 12, padding: "12px 14px", alignItems: "center" }}>
+                            <button onClick={() => toggleChecked(item.id)}
+                              style={{ width: 26, height: 26, borderRadius: "var(--radius-full)", border: `2px solid ${item.checked ? "var(--green-500)" : "var(--gray-300)"}`, background: item.checked ? "var(--green-500)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s", cursor: "pointer" }}>
+                              {item.checked && <svg width="12" height="12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>}
+                            </button>
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", objectFit: "cover", flexShrink: 0 }} onError={(e) => { e.target.style.display = "none"; }} />
+                            ) : (
+                              <div style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", background: "var(--gray-100)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🛍️</div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              {item.category && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: categoryColors[item.category] || "var(--green-500)", borderRadius: "var(--radius-full)", padding: "1px 7px", marginBottom: 4, display: "inline-block" }}>{item.category}</span>
+                              )}
+                              <p style={{ fontWeight: 700, fontSize: 14, color: "var(--gray-900)", textDecoration: item.checked ? "line-through" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", margin: 0 }}>{item.name}</p>
+                              <p style={{ fontSize: 11, color: "var(--gray-400)", margin: "2px 0 0" }}>{item.brand || "Sem marca"}</p>
+                              {item.cheapestPrice && (
+                                <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--green-600)", margin: "4px 0 0" }}>
+                                  R$ {(Number(item.cheapestPrice) * (item.quantity || 1)).toFixed(2)}
+                                  {(item.quantity || 1) > 1 && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--gray-400)", marginLeft: 4 }}>({Number(item.cheapestPrice).toFixed(2)} un.)</span>}
+                                </p>
+                              )}
+                            </div>
+                            <button onClick={() => removeFromList(item.id)}
+                              style={{ width: 30, height: 30, borderRadius: "var(--radius-full)", background: "#fff1f2", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+                              <svg width="12" height="12" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                            </button>
+                          </div>
+                          <div style={{ borderTop: "1px solid var(--gray-100)", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gray-50)" }}>
+                            <p style={{ fontSize: 12, color: "var(--gray-500)", fontWeight: 500, margin: 0 }}>Quantidade</p>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <button onClick={() => typeof updateQuantity === "function" && updateQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))}
+                                style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", border: "1.5px solid var(--gray-300)", background: "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "var(--gray-600)", cursor: "pointer" }}>−</button>
+                              <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", minWidth: 20, textAlign: "center" }}>{item.quantity || 1}</span>
+                              <button onClick={() => typeof updateQuantity === "function" && updateQuantity(item.id, (item.quantity || 1) + 1)}
+                                style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", border: "1.5px solid var(--green-400)", background: "var(--green-500)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "var(--white)", cursor: "pointer" }}>+</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
 
               {checked > 0 && (
                 <button onClick={() => list.filter((i) => i.checked).forEach((i) => removeFromList(i.id))}
-                  style={{ width: "100%", marginTop: 8, padding: "12px", border: "1.5px dashed var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-500)", fontSize: 14, fontWeight: 600 }}>
-                  Limpar itens marcados ({checked})
+                  style={{ width: "100%", marginTop: 8, padding: "12px", border: "1.5px dashed var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-500)", fontSize: 14, fontWeight: 600, cursor: "pointer", background: "transparent" }}>
+                  🗑️ Limpar itens marcados ({checked})
                 </button>
               )}
             </>
           )}
         </div>
       ) : (
-        <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ padding: "12px 16px" }}>
           {favorites.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 0", color: "var(--gray-500)" }}>
               <p style={{ fontSize: 36, marginBottom: 10 }}>❤️</p>
@@ -154,21 +464,72 @@ export default function ShoppingList({ setPage }) {
               <button onClick={() => setPage("home")} style={{ marginTop: 20, padding: "12px 28px", background: "var(--green-500)", color: "var(--white)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-display)", fontWeight: 700 }}>Ver ofertas</button>
             </div>
           ) : (
-            favorites.map((item, idx) => (
-              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", padding: "14px 16px", animation: "fadeUp 0.25s ease both", animationDelay: `${idx*0.05}s` }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: 600, fontSize: 15, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</p>
-                  <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>{item.category || "Sem categoria"} · {item.brand || "Sem marca"}</p>
-                </div>
-                <button onClick={() => toggleFavorite(item)}
-                  style={{ width: 34, height: 34, borderRadius: "var(--radius-full)", background: "var(--red-50)", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                  title="Remover favorito">
-                  <svg width="14" height="14" fill="none" stroke="var(--red-400)" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M4 4l8 8M12 4l-8 8"/>
-                  </svg>
-                </button>
+            <>
+              <div style={{ position: "relative", marginBottom: 10 }}>
+                <SearchIcon />
+                <input type="text" placeholder="Buscar favoritos..." value={searchFav} onChange={(e) => setSearchFav(e.target.value)} style={searchBarStyle} />
+                {searchFav && <ClearBtn onClick={() => setSearchFav("")} />}
               </div>
-            ))
+              {favCategories.length > 1 && (
+                <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: 10, scrollbarWidth: "none" }}>
+                  {favCategories.map((cat) => (
+                    <button key={cat} onClick={() => setActiveCatFav(cat)} style={chipStyle(activeCatFav === cat, categoryColors[cat])}>
+                      {cat === "Todos" ? "❤️ Todos" : cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+                <span style={{ fontSize: 12, color: "var(--gray-400)", fontWeight: 600, alignSelf: "center", flexShrink: 0 }}>Ordenar:</span>
+                {[{ id: "default", label: "Padrão" }, { id: "name", label: "A-Z" }, { id: "price", label: "Menor preço" }, { id: "category", label: "Categoria" }].map((s) => (
+                  <button key={s.id} onClick={() => setSortBy(s.id)} style={chipStyle(sortBy === s.id)}>{s.label}</button>
+                ))}
+              </div>
+              {(searchFav || activeCatFav !== "Todos") && (
+                <p style={{ fontSize: 12, color: "var(--gray-400)", marginBottom: 10 }}>Mostrando {filteredFavorites.length} de {favorites.length} favoritos</p>
+              )}
+              {filteredFavorites.length === 0 && (
+                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--gray-400)" }}>
+                  <p style={{ fontSize: 28, marginBottom: 8 }}>🔍</p>
+                  <p style={{ fontWeight: 600, fontSize: 14 }}>Nenhum favorito encontrado</p>
+                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {filteredFavorites.map((item, idx) => {
+                  const inList = isInList(item.id);
+                  const catColor = categoryColors[item.category] || "var(--green-500)";
+                  return (
+                    <div key={item.id} style={{ background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", overflow: "hidden", boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", animation: "fadeUp 0.25s ease both", animationDelay: `${idx * 0.04}s` }}>
+                      <div style={{ position: "relative", width: "100%", paddingTop: "70%", overflow: "hidden", background: "var(--gray-50)" }}>
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.name} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.target.style.display = "none"; }} />
+                        ) : (
+                          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🛍️</div>
+                        )}
+                        <span style={{ position: "absolute", top: 6, left: 6, background: catColor, color: "white", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: "var(--radius-full)" }}>{item.category || "Geral"}</span>
+                        <button onClick={() => toggleFavorite(item)} style={{ position: "absolute", top: 6, right: 6, width: 28, height: 28, borderRadius: "var(--radius-full)", background: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.15)", cursor: "pointer" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#f87171" stroke="#f87171" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        </button>
+                      </div>
+                      <div style={{ padding: "10px 10px 6px", flex: 1 }}>
+                        <p style={{ fontWeight: 700, fontSize: 13, color: "var(--gray-900)", marginBottom: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.name}</p>
+                        <p style={{ fontSize: 11, color: "var(--gray-400)", marginBottom: 4 }}>{item.brand || "Sem marca"}</p>
+                        {item.cheapestPrice && (
+                          <div>
+                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--green-600)", margin: 0 }}>R$ {Number(item.cheapestPrice).toFixed(2)}</p>
+                            {item.supermarket && <p style={{ fontSize: 10, color: "var(--gray-400)", marginTop: 1 }}>📍 {item.supermarket}</p>}
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={() => inList ? removeFromList(item.id) : addToList(item, item.cheapestPrice, item.supermarket)}
+                        style={{ margin: "0 10px 10px", padding: "8px", borderRadius: "var(--radius-md)", background: inList ? "var(--green-500)" : "var(--green-50)", border: `1.5px solid ${inList ? "var(--green-500)" : "var(--green-300)"}`, color: inList ? "white" : "var(--green-700)", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", transition: "all 0.15s" }}>
+                        {inList ? <><svg width="12" height="12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg> Na lista ✓</> : <><svg width="12" height="12" fill="none" stroke="var(--green-700)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg> Adicionar à lista</>}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
