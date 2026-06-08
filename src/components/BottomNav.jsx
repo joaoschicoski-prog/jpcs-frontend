@@ -1,7 +1,10 @@
 import { useAuth } from "../context/AuthContext";
+import { useList } from "../context/ListContext";
 
 export default function BottomNav({ page, setPage }) {
   const { isLogged } = useAuth();
+  const { list } = useList();
+  const pendentes = list.filter((i) => !i.checked).length;
 
   const items = [
     {
@@ -24,6 +27,7 @@ export default function BottomNav({ page, setPage }) {
     {
       id: isLogged ? "list" : "login",
       label: "Minha lista",
+      badge: isLogged && pendentes > 0 ? pendentes : null,
       icon: (
         <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
@@ -46,11 +50,13 @@ export default function BottomNav({ page, setPage }) {
 
   return (
     <nav style={{
-      position: "sticky", bottom: 0,
+      position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+      width: "100%", maxWidth: 480,
       background: "var(--white)",
       borderTop: "1px solid var(--gray-200)",
       display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
       zIndex: 100,
+      boxShadow: "0 -2px 12px rgba(0,0,0,0.06)",
     }}>
       {items.map((item) => {
         const active = page === item.id;
@@ -63,10 +69,21 @@ export default function BottomNav({ page, setPage }) {
               alignItems: "center", justifyContent: "center",
               gap: 3, padding: "8px 0 10px",
               color: active ? "var(--green-600)" : "var(--gray-500)",
-              transition: "color 0.15s",
+              transition: "color 0.15s", position: "relative",
             }}
           >
             {item.icon}
+            {item.badge && (
+              <span style={{
+                position: "absolute", top: 4, right: "22%",
+                background: "var(--green-500)", color: "white",
+                fontSize: 9, fontWeight: 700,
+                borderRadius: "var(--radius-full)",
+                padding: "1px 5px", minWidth: 16, textAlign: "center",
+              }}>
+                {item.badge}
+              </span>
+            )}
             <span style={{ fontSize: 10, fontWeight: active ? 600 : 400 }}>
               {item.label}
             </span>

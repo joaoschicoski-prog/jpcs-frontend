@@ -10,9 +10,10 @@ import ShoppingList from "./pages/ShoppingList";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import MarketOffers from "./pages/MarketOffers";
+import ProductDetail from "./pages/ProductDetail";
 
 function AppInner() {
-  const { page, setPage, selectedMarket, goToMarket } = useNav();
+  const { page, setPage, selectedMarket, goToMarket, selectedProduct, goBack } = useNav();
 
   const pages = {
     home: <Home setPage={setPage} />,
@@ -22,6 +23,7 @@ function AppInner() {
     profile: <Profile setPage={setPage} />,
     admin: <Admin setPage={setPage} />,
     market: <MarketOffers market={selectedMarket} onBack={() => setPage("ranking")} />,
+    product: <ProductDetail product={selectedProduct} onBack={goBack} />,
   };
 
   return (

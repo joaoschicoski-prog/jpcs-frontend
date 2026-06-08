@@ -17,10 +17,10 @@ function getDaysUntil(dateStr) {
   return Math.round((end - today) / (1000 * 60 * 60 * 24));
 }
 
-export default function ProductCard({ product, cheapestPrice, supermarket, validUntil, originalPrice, discountPct, onClick }) {
+export default function ProductCard({ product, cheapestPrice, supermarket, validUntil, originalPrice, discountPct }) {
   const { isLogged } = useAuth();
   const { isFavorite, toggleFavorite, isInList, addToList, removeFromList } = useList();
-  const { goToMarket } = useNav();
+  const { goToMarket, goToProduct } = useNav();
   const fav = isFavorite(product.id);
   const inList = isInList(product.id);
   const days = getDaysUntil(validUntil);
@@ -30,14 +30,8 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
   const hasDiscount = originalPrice && Number(originalPrice) > Number(cheapestPrice);
 
   return (
-    <div style={{
-      background: "var(--white)",
-      border: `2px solid ${isUrgent ? "#f97316" : isWarning ? "#fbbf24" : "var(--gray-200)"}`,
-      borderRadius: "var(--radius-lg)",
-      animation: "fadeUp 0.3s ease both",
-      overflow: "hidden",
-    }}>
-      <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 14px 10px", cursor: "pointer" }}>
+    <div style={{ background: "var(--white)", border: `2px solid ${isUrgent ? "#f97316" : isWarning ? "#fbbf24" : "var(--gray-200)"}`, borderRadius: "var(--radius-lg)", animation: "fadeUp 0.3s ease both", overflow: "hidden" }}>
+      <div onClick={() => goToProduct(product)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 14px 10px", cursor: "pointer" }}>
         {product.image_url ? (
           <div style={{ position: "relative", flexShrink: 0 }}>
             <img src={product.image_url} alt={product.name} style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", objectFit: "cover" }} />
@@ -50,28 +44,19 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
         ) : (
           <div style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", background: "var(--green-50)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🛒</div>
         )}
-
         <div style={{ flex: 1, minWidth: 0 }}>
           {product.category && (
             <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "white", background: catColor, borderRadius: "var(--radius-full)", padding: "1px 8px", marginBottom: 3 }}>
               {product.category}
             </span>
           )}
-          <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {product.name}
-          </p>
+          <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{product.name}</p>
           <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>{product.brand || "Sem marca"}</p>
           {cheapestPrice && (
             <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                {hasDiscount && (
-                  <span style={{ fontSize: 12, color: "var(--gray-400)", textDecoration: "line-through" }}>
-                    R$ {Number(originalPrice).toFixed(2)}
-                  </span>
-                )}
-                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-display)", color: hasDiscount ? "#ef4444" : "var(--green-600)" }}>
-                  R$ {Number(cheapestPrice).toFixed(2)}
-                </span>
+                {hasDiscount && <span style={{ fontSize: 12, color: "var(--gray-400)", textDecoration: "line-through" }}>R$ {Number(originalPrice).toFixed(2)}</span>}
+                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-display)", color: hasDiscount ? "#ef4444" : "var(--green-600)" }}>R$ {Number(cheapestPrice).toFixed(2)}</span>
               </div>
               {supermarket && (
                 <button onClick={(e) => { e.stopPropagation(); goToMarket({ name: supermarket }); }}
@@ -84,10 +69,7 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
             </div>
           )}
         </div>
-
-        <svg width="16" height="16" fill="none" stroke="var(--gray-300)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-          <path d="M6 4l4 4-4 4"/>
-        </svg>
+        <svg width="16" height="16" fill="none" stroke="var(--gray-300)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4"/></svg>
       </div>
 
       {isLogged && (

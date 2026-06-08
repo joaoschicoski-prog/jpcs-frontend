@@ -277,13 +277,21 @@ export default function Admin({ setPage }) {
     );
     return (
       <Section title={`Ofertas (${data.offers.length})`} icon="💰">
-        <SmartOfferForm data={data} editOffer={editOffer} onCancelEdit={() => setEditOffer(null)} onToast={showToast} onSuccess={() => { setEditOffer(null); reload(); }} />
+        <SmartOfferForm
+          key={editOffer?.id || "new"}
+          data={data}
+          editOffer={editOffer}
+          onCancelEdit={() => setEditOffer(null)}
+          onToast={showToast}
+          onSuccess={() => { setEditOffer(null); reload(); }}
+        />
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar por produto ou mercado..." />
         {filtered.map((o) => (
           <Row key={o.id}
             label={`${o.product} → ${o.supermarket}`}
             sub={[
               `R$ ${Number(o.price).toFixed(2)}`,
+              o.original_price ? `Original: R$ ${Number(o.original_price).toFixed(2)}` : null,
               o.valid_from ? `De: ${new Date(o.valid_from).toLocaleDateString("pt-BR")}` : null,
               o.valid_until ? `Até: ${new Date(o.valid_until).toLocaleDateString("pt-BR")}` : null,
             ].filter(Boolean).join(" · ")}
