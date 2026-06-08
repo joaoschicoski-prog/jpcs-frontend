@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { api } from "../api";
 import ProductCard from "../components/ProductCard";
 import { useNav } from "../context/NavContext";
+import { useList } from "../context/ListContext";
 
 function getDaysUntil(dateStr) {
   if (!dateStr) return null;
@@ -19,6 +20,7 @@ export default function Home({ setPage }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const { goToProduct } = useNav();
+  const { addToList, isInList, removeFromList } = useList();
 
   useEffect(() => {
     Promise.all([api.getProducts(), api.getCheapest()])
@@ -42,7 +44,6 @@ export default function Home({ setPage }) {
     cheapest.filter((c) => { const d = getDaysUntil(c.valid_until); return d !== null && d <= 1; }),
   [cheapest]);
 
-  // Ordenar por maior desconto
   const highlights = useMemo(() => {
     return [...cheapest]
       .filter((c) => c.discount_pct && Number(c.discount_pct) > 0)
@@ -87,7 +88,6 @@ export default function Home({ setPage }) {
         </div>
       </div>
 
-      {/* Destaques — maior desconto */}
       {!loading && highlights.length > 0 && search === "" && activeTab === "all" && (
         <div style={{ padding: "18px 0 0" }}>
           <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", padding: "0 16px", marginBottom: 10 }}>
@@ -96,45 +96,36 @@ export default function Home({ setPage }) {
           <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 16px 4px", scrollbarWidth: "none" }}>
             {highlights.map((item) => {
               const prod = products.find((p) => p.id === item.id);
+              const inList = isInList(item.id);
               return (
-                <button key={item.id}
-                  onClick={() => { if (prod) goToProduct(prod); }}
-                  style={{ minWidth: 140, background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-md)", textAlign: "left", flexShrink: 0, cursor: "pointer", overflow: "hidden", position: "relative" }}>
-
-                  {/* Badge desconto */}
-                  <span style={{ position: "absolute", top: 8, left: 8, background: "#ef4444", color: "white", fontSize: 10, fontWeight: 800, borderRadius: "var(--radius-full)", padding: "2px 8px", zIndex: 1 }}>
-                    -{item.discount_pct}% OFF
-                  </span>
-
-                  {/* Foto */}
-                  {item.image_url ? (
-                    <img src={item.image_url} alt={item.product}
-                      style={{ width: "100%", height: 90, objectFit: "cover" }}
-                      onError={(e) => { e.target.style.display = "none"; }} />
-                  ) : (
-                    <div style={{ width: "100%", height: 90, background: "var(--gray-100)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🛒</div>
-                  )}
-
-                  <div style={{ padding: "10px 10px 12px" }}>
-                    <p style={{ fontSize: 12, color: "var(--gray-700)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 4 }}>{item.product}</p>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, color: "var(--gray-400)", textDecoration: "line-through" }}>
-                        R$ {Number(item.original_price).toFixed(2)}
-                      </span>
+                <div key={item.id} style={{ minWidth: 140, background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-md)", flexShrink: 0, overflow: "hidden", position: "relative" }}>
+                  <div onClick={() => { if (prod) goToProduct(prod); }} style={{ cursor: "pointer" }}>
+                    <span style={{ position: "absolute", top: 8, left: 8, background: "#ef4444", color: "white", fontSize: 10, fontWeight: 800, borderRadius: "var(--radius-full)", padding: "2px 8px", zIndex: 1 }}>
+                      -{item.discount_pct}% OFF
+                    </span>
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.product} style={{ width: "100%", height: 90, objectFit: "cover" }} onError={(e) => { e.target.style.display = "none"; }} />
+                    ) : (
+                      <div style={{ width: "100%", height: 90, background: "var(--gray-100)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🛒</div>
+                    )}
+                    <div style={{ padding: "8px 10px 4px" }}>
+                      <p style={{ fontSize: 12, color: "var(--gray-700)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 2 }}>{item.product}</p>
+                      <span style={{ fontSize: 11, color: "var(--gray-400)", textDecoration: "line-through" }}>R$ {Number(item.original_price).toFixed(2)}</span>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, color: "#ef4444", margin: "2px 0" }}>R$ {Number(item.price).toFixed(2)}</p>
+                      <p style={{ fontSize: 10, color: "var(--gray-400)", margin: "0 0 6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.supermarket}</p>
                     </div>
-                    <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, color: "#ef4444", margin: "2px 0" }}>
-                      R$ {Number(item.price).toFixed(2)}
-                    </p>
-                    <p style={{ fontSize: 10, color: "var(--gray-400)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.supermarket}</p>
                   </div>
-                </button>
+                  <button onClick={(e) => { e.stopPropagation(); inList ? removeFromList(item.id) : addToList(prod, item.price, item.supermarket); }}
+                    style={{ width: "100%", padding: "7px", background: inList ? "#ef4444" : "var(--green-500)", color: "white", fontSize: 11, fontWeight: 700, borderTop: `1px solid ${inList ? "#fca5a5" : "var(--green-400)"}`, cursor: "pointer" }}>
+                    {inList ? "✕ Remover da lista" : "+ Adicionar à lista"}
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* Tabs */}
       <div style={{ display: "flex", gap: 8, padding: "14px 16px 0", overflowX: "auto" }}>
         {[
           { id: "all", label: "Todas as ofertas" },
@@ -147,7 +138,6 @@ export default function Home({ setPage }) {
         ))}
       </div>
 
-      {/* Categorias */}
       {categories.length > 0 && (
         <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px 0", scrollbarWidth: "none" }}>
           {["all", ...categories].map((cat) => (
@@ -159,7 +149,6 @@ export default function Home({ setPage }) {
         </div>
       )}
 
-      {/* Lista */}
       <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
         {loading ? (
           [1,2,3,4].map((i) => (

@@ -13,24 +13,21 @@ import MarketOffers from "./pages/MarketOffers";
 import ProductDetail from "./pages/ProductDetail";
 
 function AppInner() {
-  const { page, setPage, selectedMarket, goToMarket, selectedProduct, goBack } = useNav();
-
-  const pages = {
-    home: <Home setPage={setPage} />,
-    ranking: <Ranking onSelectMarket={goToMarket} />,
-    login: <Login setPage={setPage} />,
-    list: <ShoppingList setPage={setPage} />,
-    profile: <Profile setPage={setPage} />,
-    admin: <Admin setPage={setPage} />,
-    market: <MarketOffers market={selectedMarket} onBack={() => setPage("ranking")} />,
-    product: <ProductDetail product={selectedProduct} onBack={goBack} />,
-  };
+  const { page, setPage, selectedMarket, marketTab, goToMarket, selectedProduct, goBack } = useNav();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Header page={page} setPage={setPage} />
       <main style={{ flex: 1, overflowY: "auto" }}>
-        {pages[page] || <Home setPage={setPage} />}
+        {page === "home" && <Home setPage={setPage} />}
+        {page === "ranking" && <Ranking onSelectMarket={goToMarket} />}
+        {page === "login" && <Login setPage={setPage} />}
+        {page === "list" && <ShoppingList setPage={setPage} />}
+        {page === "profile" && <Profile setPage={setPage} />}
+        {page === "admin" && <Admin setPage={setPage} />}
+        {page === "market" && <MarketOffers key={`${selectedMarket?.name}-${marketTab}-${selectedMarket?._ts || 0}`} market={selectedMarket} initialTab={marketTab} onBack={goBack} />}
+        {page === "product" && <ProductDetail product={selectedProduct} onBack={goBack} />}
+        {!["home","ranking","login","list","profile","admin","market","product"].includes(page) && <Home setPage={setPage} />}
       </main>
       <BottomNav page={page} setPage={setPage} />
     </div>
