@@ -27,9 +27,12 @@ export const api = {
   getBrands: () => get("/brands"),
   getSupermarkets: () => get("/supermarkets"),
 
-  // auth (futuro endpoint)
+  // auth
   register: (body) => post("/auth/register", body),
   login: (body) => post("/auth/login", body),
+  verifyEmail: (token) => get(`/auth/verificar-email?token=${token}`),
+  forgotPassword: (body) => post("/auth/esqueci-senha", body),
+  resetPassword: (body) => post("/auth/redefinir-senha", body),
 
   // admin
   createProduct: (body) => post("/products", body),

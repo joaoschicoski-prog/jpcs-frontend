@@ -266,7 +266,7 @@ export default function ShoppingList({ setPage }) {
                         {simMode === "one" && (
                           <div>
                             {marketSimData.slice(0, 4).map((m, idx) => (
-                              <div key={m.name} style={{ background: idx === 0 ? "#f0fdf4" : "var(--white)", border: `1.5px solid ${idx === 0 ? "var(--green-300)" : "var(--gray-200)"}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => goToMarket({ name: m.name })}>
+                              <div key={m.name} style={{ background: idx === 0 ? "#f0fdf4" : "var(--white)", border: `1.5px solid ${idx === 0 ? "var(--green-300)" : "var(--gray-200)"}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => goToMarket({ name: m.name, initialTab: "list", _ts: Date.now() })}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 18 }}>{["🥇","🥈","🥉","4️⃣"][idx]}</span>
@@ -301,7 +301,7 @@ export default function ShoppingList({ setPage }) {
 
                             {[{ market: bestSplit.m1, num: 1 }, { market: bestSplit.m2, num: 2 }].map(({ market, num }) => (
                               <div key={market.name} style={{ background: "var(--white)", border: "1.5px solid var(--green-300)", borderRadius: "var(--radius-lg)", marginBottom: 10, overflow: "hidden" }}>
-                                <div style={{ background: "var(--green-600)", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => goToMarket({ name: market.name })}>
+                                <div style={{ background: "var(--green-600)", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => goToMarket({ name: market.name, initialTab: "list" })}>
                                   <div>
                                     <p style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", margin: 0 }}>Parada {num}</p>
                                     <p style={{ fontWeight: 700, fontSize: 14, color: "white", margin: 0 }}>{market.name}</p>
