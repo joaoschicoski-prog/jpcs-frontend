@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } = from "react";
 import { api } from "../api";
 
-export default function VerificarEmail({ setPage }) {
-  const [status, setStatus] = useState("loading"); // loading | success | error
+export default function VerificarEmail() {
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function VerificarEmail({ setPage }) {
             </p>
             {status === "success" && (
               <button
-                onClick={() => setPage("login")}
+                onClick={() => window.location.href = "/"}
                 style={{
                   padding: "14px 32px",
                   background: "var(--green-500)",
@@ -90,7 +90,7 @@ export default function VerificarEmail({ setPage }) {
             )}
             {status === "error" && (
               <button
-                onClick={() => setPage("login")}
+                onClick={() => window.location.href = "/"}
                 style={{
                   padding: "14px 32px",
                   background: "var(--gray-200)",

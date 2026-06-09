@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 
-export default function RedefinirSenha({ setPage }) {
+export default function RedefinirSenha() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -141,7 +141,7 @@ export default function RedefinirSenha({ setPage }) {
               {success}
             </p>
             <button
-              onClick={() => setPage("login")}
+              onClick={() => window.location.href = "/"}
               style={{
                 padding: "14px 32px",
                 background: "var(--green-500)",
