@@ -127,19 +127,19 @@ export default function Profile({ setPage }) {
 
             <div style={inputWrap}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Senha atual</p>
-              <input type={showCurrent ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
+              <input type={showCurrent ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}  style={inputStyle} />
               <button style={eyeBtn} onClick={() => setShowCurrent(!showCurrent)}><EyeIcon open={showCurrent} /></button>
             </div>
 
             <div style={inputWrap}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Nova senha</p>
-              <input type={showNew ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
+              <input type={showNew ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}  style={inputStyle} />
               <button style={eyeBtn} onClick={() => setShowNew(!showNew)}><EyeIcon open={showNew} /></button>
             </div>
 
             <div style={{ ...inputWrap, marginBottom: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Confirmar nova senha</p>
-              <input type={showConfirm ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
+              <input type={showConfirm ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}  style={inputStyle} />
               <button style={eyeBtn} onClick={() => setShowConfirm(!showConfirm)}><EyeIcon open={showConfirm} /></button>
             </div>
 
