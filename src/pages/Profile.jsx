@@ -15,7 +15,7 @@ const EyeIcon = ({ open }) => open ? (
 
 export default function Profile({ setPage }) {
   const { user, logout, isAdmin, isLogged, login } = useAuth();
-  const { list, favorites } = useList();
+  const { list } = useList();
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -33,9 +33,7 @@ export default function Profile({ setPage }) {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 32px", textAlign: "center" }}>
         <p style={{ fontSize: 48, marginBottom: 16 }}>👤</p>
         <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Você não está logado</p>
-        <button onClick={() => setPage("login")} style={{ padding: "14px 32px", background: "var(--green-500)", color: "var(--white)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>
-          Entrar
-        </button>
+        <button onClick={() => setPage("login")} style={{ padding: "14px 32px", background: "var(--green-500)", color: "var(--white)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>Entrar</button>
       </div>
     );
   }
@@ -44,8 +42,7 @@ export default function Profile({ setPage }) {
   const initials = user.name?.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "U";
 
   const handleSave = async () => {
-    setError(null);
-    setMsg(null);
+    setError(null); setMsg(null);
     if (!name.trim() && !newPassword) { setError("Preencha pelo menos um campo para atualizar."); return; }
     if (newPassword && newPassword.length < 6) { setError("Nova senha deve ter pelo menos 6 caracteres."); return; }
     if (newPassword && newPassword !== confirmPassword) { setError("As senhas não coincidem."); return; }
@@ -61,29 +58,11 @@ export default function Profile({ setPage }) {
       setMsg("Perfil atualizado com sucesso!");
       setEditMode(false);
       setName(""); setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  const stats = [
-    { label: "Na lista", value: list.length },
-    { label: "Favoritos", value: favorites.length },
-  ];
-
-  const inputWrap = { position: "relative", marginBottom: 10 };
-  const inputStyle = {
-    width: "100%", padding: "12px 42px 12px 14px", borderRadius: "var(--radius-md)",
-    border: "1.5px solid var(--gray-200)", fontSize: 14, color: "var(--gray-900)",
-    outline: "none", boxSizing: "border-box", background: "var(--white)",
-  };
-  const eyeBtn = {
-    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-    background: "none", border: "none", cursor: "pointer", color: "var(--gray-400)",
-    display: "flex", alignItems: "center", padding: 0,
-  };
+  const inputStyle = { width: "100%", padding: "12px 42px 12px 14px", borderRadius: "var(--radius-md)", border: "1.5px solid var(--gray-200)", fontSize: 14, color: "var(--gray-900)", outline: "none", boxSizing: "border-box", background: "var(--white)" };
+  const eyeBtn = { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--gray-400)", display: "flex", alignItems: "center", padding: 0 };
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -97,13 +76,9 @@ export default function Profile({ setPage }) {
       </div>
 
       <div style={{ margin: "-24px 16px 0", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-          {stats.map((s) => (
-            <div key={s.label} style={{ background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", padding: "16px", textAlign: "center", boxShadow: "var(--shadow-sm)" }}>
-              <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, color: "var(--green-600)" }}>{s.value}</p>
-              <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 4 }}>{s.label}</p>
-            </div>
-          ))}
+        <div style={{ background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", padding: "16px", textAlign: "center", boxShadow: "var(--shadow-sm)", marginBottom: 16 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--green-600)", margin: 0 }}>{list.length}</p>
+          <p style={{ fontSize: 13, color: "var(--gray-500)", marginTop: 4 }}>itens na lista</p>
         </div>
 
         {msg && (
@@ -115,41 +90,37 @@ export default function Profile({ setPage }) {
         {editMode ? (
           <div style={{ background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", padding: "20px 16px", marginBottom: 12, boxShadow: "var(--shadow-sm)" }}>
             <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--gray-900)", marginBottom: 16 }}>✏️ Editar perfil</p>
-
             <div style={{ marginBottom: 12 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Novo nome</p>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={user.name}
-                style={{ ...inputStyle, padding: "12px 14px" }} />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={user.name} style={{ ...inputStyle, padding: "12px 14px" }} />
             </div>
-
             <div style={{ height: 1, background: "var(--gray-100)", margin: "16px 0" }} />
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-500)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Trocar senha</p>
-
-            <div style={inputWrap}>
+            <div style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Senha atual</p>
-              <input type={showCurrent ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}  style={inputStyle} />
-              <button style={eyeBtn} onClick={() => setShowCurrent(!showCurrent)}><EyeIcon open={showCurrent} /></button>
+              <div style={{ position: "relative" }}>
+                <input type={showCurrent ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={inputStyle} />
+                <button style={eyeBtn} onClick={() => setShowCurrent(!showCurrent)}><EyeIcon open={showCurrent} /></button>
+              </div>
             </div>
-
-            <div style={inputWrap}>
+            <div style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Nova senha</p>
-              <input type={showNew ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}  style={inputStyle} />
-              <button style={eyeBtn} onClick={() => setShowNew(!showNew)}><EyeIcon open={showNew} /></button>
+              <div style={{ position: "relative" }}>
+                <input type={showNew ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={inputStyle} />
+                <button style={eyeBtn} onClick={() => setShowNew(!showNew)}><EyeIcon open={showNew} /></button>
+              </div>
             </div>
-
-            <div style={{ ...inputWrap, marginBottom: 16 }}>
+            <div style={{ marginBottom: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-600)", marginBottom: 6 }}>Confirmar nova senha</p>
-              <input type={showConfirm ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}  style={inputStyle} />
-              <button style={eyeBtn} onClick={() => setShowConfirm(!showConfirm)}><EyeIcon open={showConfirm} /></button>
+              <div style={{ position: "relative" }}>
+                <input type={showConfirm ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={inputStyle} />
+                <button style={eyeBtn} onClick={() => setShowConfirm(!showConfirm)}><EyeIcon open={showConfirm} /></button>
+              </div>
             </div>
-
             {error && <p style={{ fontSize: 13, color: "#ef4444", marginBottom: 12, fontWeight: 600 }}>⚠️ {error}</p>}
-
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setEditMode(false); setError(null); setName(""); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }}
-                style={{ flex: 1, padding: "12px", border: "1.5px solid var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-600)", fontWeight: 600, fontSize: 14, cursor: "pointer", background: "var(--white)" }}>
-                Cancelar
-              </button>
+                style={{ flex: 1, padding: "12px", border: "1.5px solid var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-600)", fontWeight: 600, fontSize: 14, cursor: "pointer", background: "var(--white)" }}>Cancelar</button>
               <button onClick={handleSave} disabled={loading}
                 style={{ flex: 1, padding: "12px", background: "var(--green-500)", border: "none", borderRadius: "var(--radius-md)", color: "white", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
                 {loading ? "Salvando..." : "Salvar"}
@@ -161,7 +132,6 @@ export default function Profile({ setPage }) {
             {[
               { label: "Editar perfil", icon: "✏️", action: () => { setEditMode(true); setMsg(null); } },
               { label: "Minha lista de compras", icon: "🛒", action: () => setPage("list") },
-              { label: "Meus favoritos", icon: "❤️", action: () => setPage("list") },
               isAdmin && { label: "Painel admin", icon: "⚙️", action: () => setPage("admin") },
             ].filter(Boolean).map((item, idx, arr) => (
               <button key={item.label} onClick={item.action}

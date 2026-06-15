@@ -21,7 +21,7 @@ function getDaysUntil(dateStr) {
 
 export default function MarketOffers({ market, onBack, initialTab }) {
   const { isLogged } = useAuth();
-  const { isFavorite, toggleFavorite, isInList, addToList, removeFromList, updateQuantity, favorites, list } = useList();
+  const { isInList, addToList, removeFromList, updateQuantity, list } = useList();
   const { goToProduct } = useNav();
   const [offers, setOffers] = useState([]);
   const [allProducts, setAllProducts] = useState({});
@@ -36,15 +36,10 @@ export default function MarketOffers({ market, onBack, initialTab }) {
   useEffect(() => {
     if (!market) return;
     setActiveCategory(market.filterCategory || "Todos");
-    setSearch("");
-    setCheckedItems({});
-    setActiveTab(null);
-    setLoading(true);
+    setSearch(""); setCheckedItems({}); setActiveTab(null); setLoading(true);
     Promise.all([api.getOffers(""), api.getProducts()]).then(([all, prods]) => {
       setOffers(all.filter((o) => o.supermarket === market.name));
-      const map = {};
-      prods.forEach((p) => { map[p.id] = p; });
-      setAllProducts(map);
+      const map = {}; prods.forEach((p) => { map[p.id] = p; }); setAllProducts(map);
     }).finally(() => setLoading(false));
   }, [market?.name, market?._ts]);
 
@@ -54,9 +49,7 @@ export default function MarketOffers({ market, onBack, initialTab }) {
   }, [offers, allProducts]);
 
   const offersByProductId = useMemo(() => {
-    const map = {};
-    offers.forEach((o) => { map[o.product_id] = o; });
-    return map;
+    const map = {}; offers.forEach((o) => { map[o.product_id] = o; }); return map;
   }, [offers]);
 
   const listWithOffers = useMemo(() => list.filter((i) => offersByProductId[i.id]), [list, offersByProductId]);
@@ -77,15 +70,10 @@ export default function MarketOffers({ market, onBack, initialTab }) {
     });
   }, [offers, search, activeCategory, allProducts]);
 
-  const filteredFavorites = useMemo(() =>
-    favorites.filter((p) => (p.name || "").toLowerCase().includes(search.toLowerCase())),
-  [favorites, search]);
-
   const toggleCheck = (id) => setCheckedItems((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const OfferRow = ({ o, idx }) => {
     const prod = allProducts[o.product_id] || { id: o.product_id, name: o.product };
-    const fav = isFavorite(o.product_id);
     const inList = isInList(o.product_id);
     const days = getDaysUntil(o.valid_until);
     const urgent = days !== null && days <= 1;
@@ -101,13 +89,11 @@ export default function MarketOffers({ market, onBack, initialTab }) {
           ) : (
             <div style={{ width: 52, height: 52, borderRadius: "var(--radius-md)", background: "var(--gray-100)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🛍️</div>
           )}
-          <button onClick={() => goToProduct(prod)} style={{ flex: 1, textAlign: "left", background: "none", minWidth: 0 }}>
-            {prod?.category && (
-              <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "white", background: catColor, borderRadius: "var(--radius-full)", padding: "1px 7px", marginBottom: 3 }}>{prod.category}</span>
-            )}
-            <p style={{ fontWeight: 700, fontSize: 14, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product}</p>
+          <button onClick={() => goToProduct(prod)} style={{ flex: 1, textAlign: "left", background: "none", minWidth: 0, border: "none", cursor: "pointer" }}>
+            {prod?.category && <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "white", background: catColor, borderRadius: "var(--radius-full)", padding: "1px 7px", marginBottom: 3 }}>{prod.category}</span>}
+            <p style={{ fontWeight: 700, fontSize: 14, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", margin: 0 }}>{o.product}</p>
             <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
-              {o.valid_until && <p style={{ fontSize: 11, color: "var(--gray-400)" }}>Até {new Date(o.valid_until).toLocaleDateString("pt-BR")}</p>}
+              {o.valid_until && <p style={{ fontSize: 11, color: "var(--gray-400)", margin: 0 }}>Até {new Date(o.valid_until).toLocaleDateString("pt-BR")}</p>}
               {urgent && <span style={{ fontSize: 10, color: "#f97316", fontWeight: 700 }}>⚡ Acaba hoje!</span>}
               {warning && <span style={{ fontSize: 10, color: "#d97706", fontWeight: 600 }}>⏳ {days} dias</span>}
             </div>
@@ -118,16 +104,12 @@ export default function MarketOffers({ market, onBack, initialTab }) {
             </div>
           </button>
           {isLogged && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-              <button onClick={() => toggleFavorite(prod)} style={{ width: 36, height: 36, borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: fav ? "#e74c3c" : "#f1f5f9", border: "none", cursor: "pointer" }}>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill={fav ? "white" : "none"} stroke={fav ? "white" : "#e74c3c"} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </button>
-              <button onClick={() => inList ? removeFromList(o.product_id) : addToList(prod, o.price, market.name)} style={{ width: 36, height: 36, borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: inList ? "var(--green-500)" : "#f1f5f9", border: "none", cursor: "pointer" }}>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={inList ? "white" : "var(--green-600)"} strokeWidth="2.5" strokeLinecap="round">
-                  {inList ? <path d="M5 13l4 4L19 7"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
-                </svg>
-              </button>
-            </div>
+            <button onClick={() => inList ? removeFromList(o.product_id) : addToList(prod, o.price, market.name)}
+              style={{ width: 36, height: 36, borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: inList ? "var(--green-500)" : "#f1f5f9", border: "none", cursor: "pointer", flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={inList ? "white" : "var(--green-600)"} strokeWidth="2.5" strokeLinecap="round">
+                {inList ? <path d="M5 13l4 4L19 7"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
+              </svg>
+            </button>
           )}
         </div>
       </div>
@@ -162,7 +144,6 @@ export default function MarketOffers({ market, onBack, initialTab }) {
                 {listWithOffers.filter((i) => (i.name || "").toLowerCase().includes(search.toLowerCase())).map((item) => {
                   const offer = offersByProductId[item.id];
                   const checked = checkedItems[item.id];
-                  const fav = isFavorite(item.id);
                   return (
                     <div key={item.id} style={{ background: checked ? "var(--green-50)" : "var(--white)", border: `1.5px solid ${checked ? "var(--green-300)" : "var(--green-200)"}`, borderLeft: "4px solid var(--green-500)", borderRadius: "var(--radius-lg)", marginBottom: 8, overflow: "hidden", opacity: checked ? 0.7 : 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
@@ -179,14 +160,9 @@ export default function MarketOffers({ market, onBack, initialTab }) {
                           <p style={{ fontSize: 11, color: "var(--gray-400)", margin: "2px 0 0" }}>{item.brand || "Sem marca"}</p>
                           <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--green-600)", margin: "4px 0 0" }}>R$ {Number(offer?.price || 0).toFixed(2)}</p>
                         </div>
-                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                          <button onClick={() => toggleFavorite(item)} style={{ width: 30, height: 30, borderRadius: "var(--radius-full)", background: fav ? "#e74c3c" : "#fff1f2", border: `1.5px solid ${fav ? "#e74c3c" : "#fca5a5"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill={fav ? "white" : "none"} stroke={fav ? "white" : "#f87171"} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                          </button>
-                          <button onClick={() => removeFromList(item.id)} style={{ width: 30, height: 30, borderRadius: "var(--radius-full)", background: "#fff1f2", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                            <svg width="11" height="11" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l7 7M9 2l-7 7"/></svg>
-                          </button>
-                        </div>
+                        <button onClick={() => removeFromList(item.id)} style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", background: "#fff1f2", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+                          <svg width="11" height="11" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l7 7M9 2l-7 7"/></svg>
+                        </button>
                       </div>
                       <div style={{ borderTop: "1px solid var(--gray-100)", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gray-50)" }}>
                         <p style={{ fontSize: 12, color: "var(--gray-500)", fontWeight: 500, margin: 0 }}>Quantidade</p>
@@ -213,7 +189,6 @@ export default function MarketOffers({ market, onBack, initialTab }) {
                 </div>
                 {listWithoutOffers.filter((i) => (i.name || "").toLowerCase().includes(search.toLowerCase())).map((item) => {
                   const checked = checkedItems[item.id];
-                  const fav = isFavorite(item.id);
                   return (
                     <div key={item.id} style={{ background: checked ? "#fffbeb" : "var(--white)", border: `1.5px solid ${checked ? "#fcd34d" : "var(--gray-200)"}`, borderLeft: "4px solid #f59e0b", borderRadius: "var(--radius-lg)", marginBottom: 8, overflow: "hidden", opacity: checked ? 0.7 : 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
@@ -230,14 +205,9 @@ export default function MarketOffers({ market, onBack, initialTab }) {
                           <p style={{ fontSize: 11, color: "var(--gray-400)", margin: "2px 0 0" }}>{item.brand || "Sem marca"}</p>
                           <p style={{ fontSize: 11, color: "#d97706", margin: "4px 0 0", fontWeight: 600 }}>⚠️ Sem oferta cadastrada</p>
                         </div>
-                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                          <button onClick={() => toggleFavorite(item)} style={{ width: 30, height: 30, borderRadius: "var(--radius-full)", background: fav ? "#e74c3c" : "#fff1f2", border: `1.5px solid ${fav ? "#e74c3c" : "#fca5a5"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill={fav ? "white" : "none"} stroke={fav ? "white" : "#f87171"} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                          </button>
-                          <button onClick={() => removeFromList(item.id)} style={{ width: 30, height: 30, borderRadius: "var(--radius-full)", background: "#fff1f2", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                            <svg width="11" height="11" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l7 7M9 2l-7 7"/></svg>
-                          </button>
-                        </div>
+                        <button onClick={() => removeFromList(item.id)} style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", background: "#fff1f2", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+                          <svg width="11" height="11" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l7 7M9 2l-7 7"/></svg>
+                        </button>
                       </div>
                       <div style={{ borderTop: "1px solid var(--gray-100)", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gray-50)" }}>
                         <p style={{ fontSize: 12, color: "var(--gray-500)", fontWeight: 500, margin: 0 }}>Quantidade</p>
@@ -272,13 +242,10 @@ export default function MarketOffers({ market, onBack, initialTab }) {
       <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--gray-200)", background: "var(--white)" }}>
         {[
           { id: "offers", label: `Ofertas (${offers.length})` },
-          ...(isLogged ? [
-            { id: "favorites", label: `❤️ Favoritos (${favorites.length})` },
-            { id: "list", label: `🛒 Lista (${list.length})` },
-          ] : []),
+          ...(isLogged ? [{ id: "list", label: `🛒 Lista (${list.length})` }] : []),
         ].map((t) => (
           <button key={t.id} onClick={() => { setActiveTab(t.id); setSearch(""); }}
-            style={{ flex: 1, padding: "12px 8px", fontSize: 12, fontWeight: 600, color: tab === t.id ? "var(--green-600)" : "var(--gray-500)", borderBottom: `2px solid ${tab === t.id ? "var(--green-500)" : "transparent"}`, background: "none", whiteSpace: "nowrap", cursor: "pointer" }}>
+            style={{ flex: 1, padding: "12px 8px", fontSize: 13, fontWeight: 600, color: tab === t.id ? "var(--green-600)" : "var(--gray-500)", borderBottom: `2px solid ${tab === t.id ? "var(--green-500)" : "transparent"}`, background: "none", whiteSpace: "nowrap", cursor: "pointer" }}>
             {t.label}
           </button>
         ))}
@@ -304,9 +271,7 @@ export default function MarketOffers({ market, onBack, initialTab }) {
           <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 10, scrollbarWidth: "none" }}>
             {offerCategories.map((cat) => (
               <button key={cat} onClick={() => setActiveCategory(cat)}
-                style={{ padding: "6px 14px", borderRadius: "var(--radius-full)", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, border: "none", cursor: "pointer",
-                  background: activeCategory === cat ? (cat === "Todos" ? "var(--green-500)" : categoryColors[cat] || "var(--green-500)") : "var(--gray-100)",
-                  color: activeCategory === cat ? "white" : "var(--gray-600)" }}>
+                style={{ padding: "6px 14px", borderRadius: "var(--radius-full)", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, border: "none", cursor: "pointer", background: activeCategory === cat ? (cat === "Todos" ? "var(--green-500)" : categoryColors[cat] || "var(--green-500)") : "var(--gray-100)", color: activeCategory === cat ? "white" : "var(--gray-600)" }}>
                 {cat === "Todos" ? "🛍️ Todos" : cat}
               </button>
             ))}
@@ -322,29 +287,6 @@ export default function MarketOffers({ market, onBack, initialTab }) {
               <p>Nenhuma oferta encontrada.</p>
             </div>
           ) : filteredOffers.map((o, idx) => <OfferRow key={o.id} o={o} idx={idx} />)
-        ) : tab === "favorites" ? (
-          filteredFavorites.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--gray-500)" }}>
-              <p style={{ fontSize: 32, marginBottom: 8 }}>❤️</p>
-              <p>Nenhum favorito encontrado.</p>
-            </div>
-          ) : filteredFavorites.map((item) => (
-            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--white)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", marginBottom: 8 }}>
-              {item.image_url ? (
-                <img src={item.image_url} alt={item.name} style={{ width: 48, height: 48, borderRadius: "var(--radius-md)", objectFit: "cover", flexShrink: 0 }} onError={(e) => { e.target.style.display="none"; }} />
-              ) : (
-                <div style={{ width: 48, height: 48, borderRadius: "var(--radius-md)", background: "var(--gray-100)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 20 }}>🛍️</div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 600, fontSize: 14, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", margin: 0 }}>{item.name}</p>
-                <p style={{ fontSize: 12, color: "var(--gray-500)", margin: "2px 0 0" }}>{item.brand || "Sem marca"}</p>
-                {item.cheapestPrice && <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--green-600)", margin: "2px 0 0" }}>R$ {Number(item.cheapestPrice).toFixed(2)}</p>}
-              </div>
-              <button onClick={() => toggleFavorite(item)} style={{ width: 34, height: 34, borderRadius: "var(--radius-full)", background: "#fff1f2", border: "1.5px solid #fca5a5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <svg width="13" height="13" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-              </button>
-            </div>
-          ))
         ) : (
           <ListTab />
         )}

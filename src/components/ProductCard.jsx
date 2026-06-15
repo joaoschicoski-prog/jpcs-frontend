@@ -19,9 +19,8 @@ function getDaysUntil(dateStr) {
 
 export default function ProductCard({ product, cheapestPrice, supermarket, validUntil, originalPrice, discountPct }) {
   const { isLogged } = useAuth();
-  const { isFavorite, toggleFavorite, isInList, addToList, removeFromList } = useList();
+  const { isInList, addToList, removeFromList } = useList();
   const { goToMarket, goToProduct } = useNav();
-  const fav = isFavorite(product.id);
   const inList = isInList(product.id);
   const days = getDaysUntil(validUntil);
   const isUrgent = days !== null && days <= 1;
@@ -36,9 +35,7 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
           <div style={{ position: "relative", flexShrink: 0 }}>
             <img src={product.image_url} alt={product.name} style={{ width: 54, height: 54, borderRadius: "var(--radius-md)", objectFit: "cover" }} />
             {hasDiscount && discountPct && (
-              <span style={{ position: "absolute", top: -6, right: -6, background: "#ef4444", color: "white", fontSize: 9, fontWeight: 800, borderRadius: "var(--radius-full)", padding: "2px 5px", lineHeight: 1 }}>
-                -{discountPct}%
-              </span>
+              <span style={{ position: "absolute", top: -6, right: -6, background: "#ef4444", color: "white", fontSize: 9, fontWeight: 800, borderRadius: "var(--radius-full)", padding: "2px 5px", lineHeight: 1 }}>-{discountPct}%</span>
             )}
           </div>
         ) : (
@@ -46,9 +43,7 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           {product.category && (
-            <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "white", background: catColor, borderRadius: "var(--radius-full)", padding: "1px 8px", marginBottom: 3 }}>
-              {product.category}
-            </span>
+            <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "white", background: catColor, borderRadius: "var(--radius-full)", padding: "1px 8px", marginBottom: 3 }}>{product.category}</span>
           )}
           <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{product.name}</p>
           <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>{product.brand || "Sem marca"}</p>
@@ -73,20 +68,13 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
       </div>
 
       {isLogged && (
-        <div style={{ display: "flex", borderTop: "1px solid var(--gray-100)" }}>
-          <button onClick={() => toggleFavorite(product)}
-            style={{ flex: 1, padding: "10px", background: fav ? "#e74c3c" : "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRight: "1px solid var(--gray-100)", cursor: "pointer" }}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill={fav ? "white" : "none"} stroke={fav ? "white" : "#e74c3c"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: fav ? "white" : "#e74c3c" }}>{fav ? "Favoritado" : "Favoritar"}</span>
-          </button>
+        <div style={{ borderTop: "1px solid var(--gray-100)" }}>
           <button onClick={() => inList ? removeFromList(product.id) : addToList(product, cheapestPrice, supermarket)}
-            style={{ flex: 1, padding: "10px", background: inList ? "var(--green-500)" : "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}>
+            style={{ width: "100%", padding: "11px", background: inList ? "var(--green-500)" : "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "none" }}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={inList ? "white" : "var(--green-600)"} strokeWidth="2.5" strokeLinecap="round">
               {inList ? <path d="M5 13l4 4L19 7"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
             </svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: inList ? "white" : "var(--green-600)" }}>{inList ? "Na lista ✓" : "Adicionar"}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: inList ? "white" : "var(--green-600)" }}>{inList ? "Na lista ✓" : "Adicionar à lista"}</span>
           </button>
         </div>
       )}
