@@ -17,6 +17,20 @@ const post = async (path, body) => {
   return data;
 };
 
+const put = async (path, body, token) => {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+  return data;
+};
+
 export const api = {
   getProducts: () => get("/products"),
   getProduct: (id) => get(`/products/${id}`),
@@ -33,6 +47,7 @@ export const api = {
   verifyEmail: (token) => get(`/auth/verificar-email?token=${token}`),
   forgotPassword: (body) => post("/auth/esqueci-senha", body),
   resetPassword: (body) => post("/auth/redefinir-senha", body),
+  updateProfile: (body, token) => put("/auth/perfil", body, token),
 
   // admin
   createProduct: (body) => post("/products", body),
