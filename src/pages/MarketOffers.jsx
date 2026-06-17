@@ -326,11 +326,7 @@ export default function MarketOffers({ market, onBack, initialTab }) {
 
   return (
     <div style={{ paddingBottom: 80 }}>
-      <div style={{ background: "var(--green-600)", padding: "16px 16px 20px" }}>
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.8)", fontSize: 13, marginBottom: 12, background: "none", border: "none", cursor: "pointer" }}>
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
-          Voltar
-        </button>
+      <div style={{ background: "var(--green-600)", padding: "12px 16px 16px" }}>
         <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 20, color: "var(--white)", marginBottom: 2 }}>{market?.name}</p>
         <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)" }}>{market?.address || "Campo Mourão - PR"}</p>
       </div>

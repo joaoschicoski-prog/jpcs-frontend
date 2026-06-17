@@ -9,16 +9,6 @@ export default function Header({ page, setPage }) {
 
   const showBack = !["home"].includes(page);
 
-  const pageLabels = {
-    ranking: "Mercados",
-    login: "Entrar",
-    list: "Minha lista",
-    profile: "Perfil",
-    admin: "Painel admin",
-    market: "Ofertas",
-    product: "Produto",
-  };
-
   return (
     <header style={{
       position: "sticky", top: 0, zIndex: 100,
@@ -27,17 +17,18 @@ export default function Header({ page, setPage }) {
       height: 56,
       display: "flex", alignItems: "center", justifyContent: "space-between",
     }}>
-      {showBack ? (
-        <button onClick={goBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: "8px 4px" }}>
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 4l-6 6 6 6"/></svg>
-          Voltar
-        </button>
-      ) : (
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {showBack && (
+          <button onClick={goBack} style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: "8px 4px 8px 0", marginRight: 4 }}>
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 4l-6 6 6 6"/></svg>
+            Voltar
+          </button>
+        )}
         <button onClick={() => setPage("home")} style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 20, color: "var(--white)", letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ background: "var(--green-400)", borderRadius: "var(--radius-sm)", padding: "2px 7px", fontSize: 13, fontWeight: 700, color: "var(--white)" }}>JPCS</span>
           Promo
         </button>
-      )}
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         {isLogged && (
@@ -54,7 +45,6 @@ export default function Header({ page, setPage }) {
             )}
           </button>
         )}
-
         <button onClick={() => setPage(isLogged ? "profile" : "login")} style={{ width: 40, height: 40, borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: (page === "profile" || page === "login") ? "rgba(255,255,255,0.2)" : "transparent" }} aria-label={isLogged ? "Perfil" : "Entrar"}>
           {isLogged ? (
             <div style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", background: "var(--green-400)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, color: "var(--white)" }}>
