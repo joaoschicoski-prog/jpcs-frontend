@@ -26,6 +26,7 @@ export function ListProvider({ children }) {
   const toggleChecked = (id) => saveList(list.map((i) => i.id === id ? { ...i, checked: !i.checked } : i));
   const updateQuantity = (id, quantity) => saveList(list.map((i) => i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i));
   const isInList = (id) => list.some((i) => i.id === id);
+  const clearAll = () => { saveList([]); saveManual([]); };
 
   const addManualItem = (name) => {
     if (!name.trim()) return;

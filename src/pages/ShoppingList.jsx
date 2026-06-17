@@ -14,7 +14,8 @@ const categoryColors = {
 
 export default function ShoppingList({ setPage }) {
   const { isLogged } = useAuth();
-  const { list, manualItems, removeFromList, toggleChecked, updateQuantity, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity } = useList();
+  const { list, manualItems, removeFromList, toggleChecked, updateQuantity, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll } = useList();
+  const [confirmClear, setConfirmClear] = useState(false);
   const { goToMarket } = useNav();
   const [searchList, setSearchList] = useState("");
   const [activeCatList, setActiveCatList] = useState("Todos");
@@ -456,6 +457,31 @@ export default function ShoppingList({ setPage }) {
                 🗑️ Limpar itens marcados ({manualChecked})
               </button>
             )}
+
+            {/* LIMPAR LISTA COMPLETA */}
+            <div style={{ marginTop: 24, borderTop: "1px solid var(--gray-100)", paddingTop: 16 }}>
+              {!confirmClear ? (
+                <button onClick={() => setConfirmClear(true)}
+                  style={{ width: "100%", padding: "13px", border: "1.5px solid #fca5a5", borderRadius: "var(--radius-md)", color: "#ef4444", fontSize: 14, fontWeight: 700, cursor: "pointer", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <svg width="16" height="16" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  Limpar lista completa
+                </button>
+              ) : (
+                <div style={{ background: "#fff1f2", border: "1.5px solid #fca5a5", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#b91c1c", textAlign: "center", margin: "0 0 12px" }}>Tem certeza? Isso apaga todos os itens!</p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setConfirmClear(false)}
+                      style={{ flex: 1, padding: "10px", border: "1.5px solid var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-600)", fontWeight: 600, fontSize: 14, cursor: "pointer", background: "var(--white)" }}>
+                      Cancelar
+                    </button>
+                    <button onClick={() => { clearAll(); setConfirmClear(false); }}
+                      style={{ flex: 1, padding: "10px", background: "#ef4444", border: "none", borderRadius: "var(--radius-md)", color: "white", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                      Sim, limpar tudo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
