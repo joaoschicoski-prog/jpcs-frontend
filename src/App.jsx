@@ -11,15 +11,13 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import MarketOffers from "./pages/MarketOffers";
 import ProductDetail from "./pages/ProductDetail";
-import VerificarEmail from "./pages/VerificarEmail.jsx/index.js";
-import RedefinirSenha from "./pages/RedefinirSenha.jsx";
+import VerificarEmail from "./pages/VerificarEmail";
+import RedefinirSenha from "./pages/RedefinirSenha";
 
 function AppInner() {
   const { page, setPage, selectedMarket, marketTab, goToMarket, selectedProduct, goBack } = useNav();
 
-  // Detecta rotas por URL para verificar email e redefinir senha
   const path = window.location.pathname;
-  const search = window.location.search;
 
   if (path === "/verificar-email") {
     return <VerificarEmail setPage={setPage} />;
