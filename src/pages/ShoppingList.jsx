@@ -14,7 +14,7 @@ const categoryColors = {
 
 export default function ShoppingList({ setPage }) {
   const { isLogged } = useAuth();
-  const { list, manualItems, removeFromList, removeCheckedFromList, toggleChecked, updateQuantity, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll } = useList();
+  const { list, manualItems, removeFromList, removeCheckedFromList, toggleChecked, toggleAllChecked, updateQuantity, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll } = useList();
   const [confirmClear, setConfirmClear] = useState(false);
   const { goToMarket } = useNav();
   const [searchList, setSearchList] = useState("");
@@ -348,7 +348,7 @@ export default function ShoppingList({ setPage }) {
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 12, color: "white", background: "rgba(255,255,255,0.2)", borderRadius: "var(--radius-full)", padding: "3px 10px", fontWeight: 700 }}>{marketChecked}/{items.length}</span>
-                          <button onClick={() => items.forEach(i => { if (allChecked || !i.checked) toggleChecked(i.id); })} style={{ fontSize: 11, fontWeight: 700, color: "var(--green-700)", background: "white", border: "none", borderRadius: "var(--radius-full)", padding: "4px 10px", cursor: "pointer" }}>
+                          <button onClick={() => toggleAllChecked(items.map(i => i.id), !allChecked)} style={{ fontSize: 11, fontWeight: 700, color: "var(--green-700)", background: "white", border: "none", borderRadius: "var(--radius-full)", padding: "4px 10px", cursor: "pointer" }}>
                             {allChecked ? "Desmarcar" : "Marcar todos"}
                           </button>
                         </div>
