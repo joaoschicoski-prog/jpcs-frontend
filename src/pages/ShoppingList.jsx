@@ -14,7 +14,7 @@ const categoryColors = {
 
 export default function ShoppingList({ setPage }) {
   const { isLogged } = useAuth();
-  const { list, manualItems, removeFromList, toggleChecked, updateQuantity, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll } = useList();
+  const { list, manualItems, removeFromList, removeCheckedFromList, toggleChecked, updateQuantity, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll } = useList();
   const [confirmClear, setConfirmClear] = useState(false);
   const { goToMarket } = useNav();
   const [searchList, setSearchList] = useState("");
@@ -387,7 +387,7 @@ export default function ShoppingList({ setPage }) {
                 })}
 
                 {checked > 0 && (
-                  <button onClick={() => list.filter((i) => i.checked).forEach((i) => removeFromList(i.id))} style={{ width: "100%", marginTop: 4, marginBottom: 24, padding: "12px", border: "1.5px dashed var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-500)", fontSize: 14, fontWeight: 600, cursor: "pointer", background: "transparent" }}>
+                  <button onClick={removeCheckedFromList} style={{ width: "100%", marginTop: 4, marginBottom: 24, padding: "12px", border: "1.5px dashed var(--gray-300)", borderRadius: "var(--radius-md)", color: "var(--gray-500)", fontSize: 14, fontWeight: 600, cursor: "pointer", background: "transparent" }}>
                     🗑️ Limpar itens marcados ({checked})
                   </button>
                 )}

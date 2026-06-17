@@ -23,6 +23,7 @@ export function ListProvider({ children }) {
     saveList([...list, { ...product, checked: false, quantity: 1, cheapestPrice: cheapestPrice || null, supermarket: supermarket || "Sem mercado definido" }]);
   };
   const removeFromList = (id) => saveList(list.filter((i) => i.id !== id));
+  const removeCheckedFromList = () => saveList(list.filter((i) => !i.checked));
   const toggleChecked = (id) => saveList(list.map((i) => i.id === id ? { ...i, checked: !i.checked } : i));
   const updateQuantity = (id, quantity) => saveList(list.map((i) => i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i));
   const isInList = (id) => list.some((i) => i.id === id);
@@ -38,7 +39,7 @@ export function ListProvider({ children }) {
   const updateManualQuantity = (id, quantity) => saveManual(manualItems.map((i) => i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i));
 
   return (
-    <ListContext.Provider value={{ list, manualItems, addToList, removeFromList, toggleChecked, updateQuantity, isInList, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll }}>
+    <ListContext.Provider value={{ list, manualItems, addToList, removeFromList, removeCheckedFromList, toggleChecked, updateQuantity, isInList, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll }}>
       {children}
     </ListContext.Provider>
   );
