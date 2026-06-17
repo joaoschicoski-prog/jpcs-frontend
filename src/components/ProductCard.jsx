@@ -74,9 +74,9 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
           {inList ? (
             <div style={{ display: "flex" }}>
               <button onClick={() => removeFromList(product.id)}
-                style={{ flex: 1, padding: "11px", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "none", borderRight: "1px solid var(--gray-100)" }}>
-                <svg width="14" height="14" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l10 10M12 2l-10 10"/></svg>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>Remover da lista</span>
+                style={{ flex: 1, padding: "11px", background: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "none", borderRight: "1px solid rgba(0,0,0,0.1)" }}>
+                <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l10 10M12 2l-10 10"/></svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>Remover da lista</span>
               </button>
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "var(--gray-50)" }}>
                 <button onClick={() => updateQuantity(product.id, Math.max(1, quantity - 1))}
