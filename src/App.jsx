@@ -11,8 +11,8 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import MarketOffers from "./pages/MarketOffers";
 import ProductDetail from "./pages/ProductDetail";
-import VerificarEmail from "./pages/VerificarEmail";
-import RedefinirSenha from "./pages/RedefinirSenha";
+import VerificarEmail from "./pages/VerificarEmail.jsx/index.js";
+import RedefinirSenha from "./pages/RedefinirSenha.jsx";
 
 function AppInner() {
   const { page, setPage, selectedMarket, marketTab, goToMarket, selectedProduct, goBack } = useNav();
