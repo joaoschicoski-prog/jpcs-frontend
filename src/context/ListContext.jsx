@@ -38,7 +38,7 @@ export function ListProvider({ children }) {
   const updateManualQuantity = (id, quantity) => saveManual(manualItems.map((i) => i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i));
 
   return (
-    <ListContext.Provider value={{ list, manualItems, addToList, removeFromList, toggleChecked, updateQuantity, isInList, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity }}>
+    <ListContext.Provider value={{ list, manualItems, addToList, removeFromList, toggleChecked, updateQuantity, isInList, addManualItem, removeManualItem, toggleManualChecked, updateManualQuantity, clearAll }}>
       {children}
     </ListContext.Provider>
   );
