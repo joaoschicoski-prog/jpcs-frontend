@@ -19,9 +19,11 @@ function getDaysUntil(dateStr) {
 
 export default function ProductCard({ product, cheapestPrice, supermarket, validUntil, originalPrice, discountPct }) {
   const { isLogged } = useAuth();
-  const { isInList, addToList, removeFromList } = useList();
+  const { isInList, addToList, removeFromList, updateQuantity, list } = useList();
   const { goToMarket, goToProduct } = useNav();
   const inList = isInList(product.id);
+  const listItem = list.find((i) => i.id === product.id);
+  const quantity = listItem?.quantity || 1;
   const days = getDaysUntil(validUntil);
   const isUrgent = days !== null && days <= 1;
   const isWarning = days !== null && days > 1 && days <= 3;
@@ -69,13 +71,30 @@ export default function ProductCard({ product, cheapestPrice, supermarket, valid
 
       {isLogged && (
         <div style={{ borderTop: "1px solid var(--gray-100)" }}>
-          <button onClick={() => inList ? removeFromList(product.id) : addToList(product, cheapestPrice, supermarket)}
-            style={{ width: "100%", padding: "11px", background: inList ? "var(--green-500)" : "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "none" }}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={inList ? "white" : "var(--green-600)"} strokeWidth="2.5" strokeLinecap="round">
-              {inList ? <path d="M5 13l4 4L19 7"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
-            </svg>
-            <span style={{ fontSize: 13, fontWeight: 700, color: inList ? "white" : "var(--green-600)" }}>{inList ? "Na lista ✓" : "Adicionar à lista"}</span>
-          </button>
+          {inList ? (
+            <div style={{ display: "flex" }}>
+              <button onClick={() => removeFromList(product.id)}
+                style={{ flex: 1, padding: "11px", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "none", borderRight: "1px solid var(--gray-100)" }}>
+                <svg width="14" height="14" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"><path d="M2 2l10 10M12 2l-10 10"/></svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>Remover da lista</span>
+              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "var(--gray-50)" }}>
+                <button onClick={() => updateQuantity(product.id, Math.max(1, quantity - 1))}
+                  style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", border: "1.5px solid var(--gray-300)", background: "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "var(--gray-600)", cursor: "pointer" }}>−</button>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--gray-900)", minWidth: 20, textAlign: "center" }}>{quantity}</span>
+                <button onClick={() => updateQuantity(product.id, quantity + 1)}
+                  style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", border: "1.5px solid var(--green-400)", background: "var(--green-500)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "var(--white)", cursor: "pointer" }}>+</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => addToList(product, cheapestPrice, supermarket)}
+              style={{ width: "100%", padding: "11px", background: "var(--white)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "none" }}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--green-600)" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green-600)" }}>Adicionar à lista</span>
+            </button>
+          )}
         </div>
       )}
     </div>
